@@ -2,141 +2,103 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manual Group Chat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NeoChat‑Style Group Chat</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      background-color: #ece5dd;
+    :root {
+      --sidebar-bg: #f3f4f8;
+      --primary: #805ad5;
+      --header-bg: #fafafa;
+      --main-bg: #fff;
+      --input-bg: #edf0f4;
+      --text: #333;
     }
-
-    .chat-header {
-      background-color: #075e54;
-      color: white;
-      padding: 15px;
-      font-size: 18px;
-      text-align: center;
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body, html { height:100%; font-family: sans-serif; display:flex; color: var(--text); }
+    .sidebar {
+      width: 280px; background: var(--sidebar-bg);
+      display:flex; flex-direction:column; border-right:1px solid #ddd;
     }
-
-    .chat-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      background-color: #fff;
-    }
-
-    .chat-bubble {
-      margin: 10px 0;
-      padding: 10px 14px;
-      border-radius: 10px;
-      max-width: 70%;
-      word-wrap: break-word;
-      position: relative;
-    }
-
-    .self {
-      background-color: #dcf8c6;
-      margin-left: auto;
-      text-align: right;
-    }
-
-    .other {
-      background-color: #f1f0f0;
-      margin-right: auto;
-      text-align: left;
-    }
-
-    .author {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .chat-input-area {
-      display: flex;
-      padding: 10px;
-      background-color: #f0f0f0;
-      align-items: center;
-      gap: 10px;
-    }
-
-    input, select {
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 20px;
-      border: none;
-      outline: none;
-    }
-
-    input[type="text"] {
-      flex: 1;
-    }
-
-    button {
-      padding: 10px 20px;
-      background-color: #075e54;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-
-    button:hover {
-      background-color: #064c46;
-    }
+    .sidebar-header { padding:16px; font-size:20px; font-weight:bold; display:flex; align-items:center; gap:8px; }
+    .btn-new { margin:16px; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; }
+    .chat-list { flex:1; overflow-y:auto; list-style:none; }
+    .chat-item { padding:12px 16px; cursor:pointer; }
+    .chat-item.active, .chat-item:hover { background:#e0d6f5; }
+    .sidebar-footer { padding:16px; border-top:1px solid #ddd; display:flex; flex-direction:column; gap:12px; }
+    .chat-main { flex:1; display:flex; flex-direction:column; }
+    .chat-main-header { padding:16px; background:var(--header-bg); border-bottom:1px solid #ddd; font-weight:bold; }
+    .chat-area { flex:1; overflow-y:auto; padding:16px; background:var(--main-bg); }
+    .msg { margin:8px 0; max-width:60%; padding:10px 14px; border-radius:8px; clear:both; }
+    .me { float:right; background:#dcf8c6; text-align:right; }
+    .other { float:left; background:#fff; text-align:left; }
+    .chat-input { padding:12px 16px; background:var(--input-bg); display:flex; gap:8px; }
+    .chat-input input { flex:1; padding:10px 14px; border-radius:20px; border:1px solid #ccc; outline:none; }
+    .chat-input button { padding:10px 16px; background:var(--primary); border:none; color:#fff; border-radius:20px; cursor:pointer; }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
 
-  <div class="chat-header">Manual Group Chat (10 Members)</div>
+  <aside class="sidebar">
+    <div class="sidebar-header">🤖 NeoChat</div>
+    <button class="btn-new">+ New Chat</button>
+    <ul class="chat-list"><li class="chat-item active">Group Chat</li></ul>
+    <div class="sidebar-footer">
+      <button>🗑 Clear History</button>
+      <button>🌙 Dark Mode</button>
+    </div>
+  </aside>
 
-  <div class="chat-container" id="chatContainer"></div>
-
-  <div class="chat-input-area">
-    <select id="userSelect">
-      <option value="You">You</option>
-      <option value="Alice">Alice</option>
-      <option value="Bob">Bob</option>
-      <option value="Carol">Carol</option>
-      <option value="Dave">Dave</option>
-      <option value="Eve">Eve</option>
-      <option value="Frank">Frank</option>
-      <option value="Grace">Grace</option>
-      <option value="Heidi">Heidi</option>
-      <option value="Ivan">Ivan</option>
-      <option value="Judy">Judy</option>
-    </select>
-    <input type="text" id="messageInput" placeholder="Type a message..." />
-    <button onclick="sendMessage()">Send</button>
+  <div class="chat-main">
+    <div class="chat-main-header">Group Chat</div>
+    <div class="chat-area" id="chatArea"></div>
+    <div class="chat-input">
+      <input type="text" id="name" placeholder="Your name" />
+      <input type="text" id="msg" placeholder="Type your message here..." />
+      <button id="sendBtn">➤</button>
+    </div>
   </div>
 
   <script>
-    const chatContainer = document.getElementById("chatContainer");
-    const userSelect = document.getElementById("userSelect");
-    const messageInput = document.getElementById("messageInput");
+    // 1️⃣ Initialize Firebase – replace with your config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "your-project-id.firebaseapp.com",
+      databaseURL: "https://your-project-id.firebaseio.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project-id.appspot.com",
+      messagingSenderId: "123456",
+      appId: "1:123456:web:abcdef"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const chatRef = firebase.database().ref('chats');
 
-    function sendMessage() {
-      const user = userSelect.value;
-      const message = messageInput.value.trim();
-      if (!message) return;
+    // UI elements
+    const chatArea = document.getElementById('chatArea');
+    const nameInput = document.getElementById('name');
+    const msgInput = document.getElementById('msg');
+    const sendBtn = document.getElementById('sendBtn');
 
-      const bubble = document.createElement("div");
-      bubble.className = "chat-bubble " + (user === "You" ? "self" : "other");
-      bubble.innerHTML = `<span class="author">${user}</span>${message}`;
-      chatContainer.appendChild(bubble);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
+    // 2️⃣ Send messages
+    sendBtn.onclick = () => {
+      const name = nameInput.value.trim();
+      const text = msgInput.value.trim();
+      if (!name || !text) return;
+      chatRef.push({ name, text, ts: Date.now() });
+      msgInput.value = '';
+    };
 
-      messageInput.value = "";
-    }
-
-    messageInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
+    // 3️⃣ Listen realtime chat updates
+    chatRef.on('child_added', snap => {
+      const m = snap.val();
+      const div = document.createElement('div');
+      div.classList.add('msg', m.name === nameInput.value.trim() ? 'me' : 'other');
+      div.innerHTML = `<strong>${m.name}</strong><br>${m.text}`;
+      chatArea.appendChild(div);
+      chatArea.scrollTop = chatArea.scrollHeight;
     });
   </script>
+
 </body>
 </html>
