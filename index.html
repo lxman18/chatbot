@@ -13,8 +13,17 @@
       --input-bg: #edf0f4;
       --text: #333;
     }
+
+    body.dark {
+      --sidebar-bg: #1e1e2f;
+      --header-bg: #2b2b3c;
+      --main-bg: #1a1a2b;
+      --input-bg: #2b2b3c;
+      --text: #eee;
+    }
+
     * { margin:0; padding:0; box-sizing:border-box; }
-    body, html { height:100%; font-family: sans-serif; display:flex; color: var(--text); }
+    body, html { height:100%; font-family: sans-serif; display:flex; color: var(--text); background: var(--main-bg); }
     .sidebar {
       width: 280px; background: var(--sidebar-bg);
       display:flex; flex-direction:column; border-right:1px solid #ddd;
@@ -31,14 +40,16 @@
     .msg { margin:8px 0; max-width:60%; padding:10px 14px; border-radius:8px; clear:both; }
     .me { float:right; background:#dcf8c6; text-align:right; }
     .other { float:left; background:#fff; text-align:left; }
+    .msg time { display:block; font-size:11px; opacity:0.6; margin-top:4px; }
     .chat-input { padding:12px 16px; background:var(--input-bg); display:flex; gap:8px; }
     .chat-input input { flex:1; padding:10px 14px; border-radius:20px; border:1px solid #ccc; outline:none; }
     .chat-input button { padding:10px 16px; background:var(--primary); border:none; color:#fff; border-radius:20px; cursor:pointer; }
   </style>
 
-  <!-- Firebase (Compat SDK) -->
+  <!-- Firebase Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -48,7 +59,7 @@
     <ul class="chat-list"><li class="chat-item active">Group Chat</li></ul>
     <div class="sidebar-footer">
       <button onclick="clearChat()">🗑 Clear History</button>
-      <button>🌙 Dark Mode</button>
+      <button onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </div>
   </aside>
 
@@ -63,7 +74,7 @@
   </div>
 
   <script>
-    // ✅ Firebase Config for your project
+    // ✅ Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBRQyvABq2QnoCy_jRNgccBS517xw4td-M",
       authDomain: "botchat-8a540.firebaseapp.com",
@@ -79,12 +90,16 @@
     firebase.initializeApp(firebaseConfig);
     const chatRef = firebase.database().ref('chats');
 
+    // ✅ Anonymous auth
+    firebase.auth().signInAnonymously().catch(err => {
+      alert("Authentication error: " + err.message);
+    });
+
     const chatArea = document.getElementById('chatArea');
     const nameInput = document.getElementById('name');
     const msgInput = document.getElementById('msg');
     const sendBtn = document.getElementById('sendBtn');
 
-    // Send Message
     sendBtn.onclick = () => {
       const name = nameInput.value.trim();
       const text = msgInput.value.trim();
@@ -93,22 +108,26 @@
       msgInput.value = '';
     };
 
-    // Realtime Listener
     chatRef.on('child_added', snap => {
       const m = snap.val();
       const div = document.createElement('div');
+      const time = new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
       div.classList.add('msg', m.name === nameInput.value.trim() ? 'me' : 'other');
-      div.innerHTML = `<strong>${m.name}</strong><br>${m.text}`;
+      div.innerHTML = `<strong>${m.name}</strong><br>${m.text}<time>${time}</time>`;
       chatArea.appendChild(div);
       chatArea.scrollTop = chatArea.scrollHeight;
     });
 
-    // Optional: Clear chat
     function clearChat() {
       if (confirm("Clear all messages?")) {
         chatRef.remove();
         chatArea.innerHTML = '';
       }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
     }
   </script>
 
